@@ -1,0 +1,105 @@
+import javax.swing.*;
+import java.awt.*;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
+
+public class MiPrimerLenguaje extends JFrame {
+
+    private JTextField campoEntrada;
+    private JTextArea areaResultado;
+    private HashMap<String, ManejadorTipo> diccionarioTipos;
+
+    public MiPrimerLenguaje() {
+        setTitle("COMPILADOR PROFESIONAL - BasaldCode");
+        setSize(650, 500);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
+
+        diccionarioTipos = new HashMap<>();
+        diccionarioTipos.put("gab", new TipoEntero());
+        diccionarioTipos.put("lit", new TipoDecimal());
+        diccionarioTipos.put("mar", new TipoTexto());
+
+        // Panel de entrada
+        JPanel panelSuperior = new JPanel(new GridLayout(3, 1, 5, 5));
+        panelSuperior.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        JLabel etiqueta = new JLabel("Ingrese sentencia (Ej: gab x ¬ 10 + 5 ;)");
+        etiqueta.setFont(new Font("Arial", Font.BOLD, 12));
+        campoEntrada = new JTextField();
+        JButton botonAnalizar = new JButton("Analizar y Ejecutar");
+        botonAnalizar.setBackground(new Color(0, 120, 215));
+        botonAnalizar.setForeground(Color.WHITE);
+        
+        panelSuperior.add(etiqueta);
+        panelSuperior.add(campoEntrada);
+        panelSuperior.add(botonAnalizar);
+
+        // Area de consola
+        areaResultado = new JTextArea();
+        areaResultado.setEditable(false);
+        areaResultado.setBackground(new Color(20, 20, 20));
+        areaResultado.setForeground(new Color(50, 255, 50));
+        areaResultado.setFont(new Font("Consolas", Font.PLAIN, 14));
+        JScrollPane scroll = new JScrollPane(areaResultado);
+
+        add(panelSuperior, BorderLayout.NORTH);
+        add(scroll, BorderLayout.CENTER);
+
+        botonAnalizar.addActionListener(e -> analizar(campoEntrada.getText().trim()));
+    }
+
+    private void analizar(String entrada) {
+        if (entrada.isEmpty()) return;
+        areaResultado.append(">>> ANALIZANDO: " + entrada + "\n");
+
+        // 1. ANALISIS LEXICO
+        String[] tokensRaw = entrada.split("(?<=[\\+\\-\\/;¬])|(?=[\\+\\-\\/;¬])|\\s+");
+        List<String> tokens = new ArrayList<>();
+        for (String t : tokensRaw) { if (!t.trim().isEmpty()) tokens.add(t.trim()); }
+
+        // 2. ANALISIS SINTACTICO BÁSICO
+        if (tokens.size() < 5) {
+            areaResultado.append("   [Sintaxis] [X] ERROR: Sentencia incompleta o falta el ';'\n\n");
+            return;
+        }
+
+        String tipo = tokens.get(0);
+        String nombre = tokens.get(1);
+        String asignacion = tokens.get(2);
+        String ultimo = tokens.get(tokens.size() - 1);
+
+        if (!diccionarioTipos.containsKey(tipo)) {
+            areaResultado.append("   [Sintaxis] [X] ERROR: Tipo '" + tipo + "' no reconocido.\n\n");
+            return;
+        }
+        if (!asignacion.equals("¬") || !ultimo.equals(";")) {
+            areaResultado.append("   [Sintaxis] [X] ERROR: Estructura invalida (falta '¬' o ';').\n\n");
+            return;
+        }
+
+        areaResultado.append("   [Sintaxis] [OK] Estructura correcta.\n");
+
+        // 3. ANALISIS SEMANTICO (Delegado a la clase correspondiente)
+        ManejadorTipo manejador = diccionarioTipos.get(tipo); // Sacamos la clase según si escribió gab, lit o mar
+        String mensajeResultado = "";
+
+        if (tokens.size() >= 7) { 
+            mensajeResultado = manejador.evaluarOperacion(nombre, tokens.get(3), tokens.get(4), tokens.get(5));
+        } else { 
+   
+            mensajeResultado = manejador.evaluarDeclaracion(nombre, tokens.get(3));
+        }
+
+        areaResultado.append(mensajeResultado);
+        campoEntrada.setText(""); 
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            new MiPrimerLenguaje().setVisible(true);
+        });
+    }
+}
